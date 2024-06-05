@@ -1,0 +1,39 @@
+import pandas as pd
+import xml.etree.ElementTree as ET
+
+xmlFile = "icdo3rev2_2019syst_claml_20210129.xml"
+tree = ET.parse(xmlFile)
+root = tree.getroot()
+dataXml = []
+
+for classЕlement in root.findall(".//Class"):
+    codeElement = classЕlement.get("code")
+    if ":" in codeElement:
+        codeM = codeElement
+        superClassM = classЕlement.find("SuperClass")
+        superCodeM = superClassM.get("code") if superClassM is not None else ""
+
+        for rubricЕlement in classЕlement.findall("Rubric"):
+            codeType = rubricЕlement.get("kind")
+            labelЕlement = rubricЕlement.find("Label")
+            prefLabel = labelЕlement.text if codeType == "preferred" else None
+            related = labelЕlement.text if codeType == "inclusion" else None
+
+            for fragmentElement in labelЕlement.findall("Fragment"):
+                synonym = fragmentElement.text if fragmentElement is not None else None
+                print(fragmentElement)
+                print(synonym)
+
+                dataXml.append({
+                        "codeM": codeM,
+                        "superCodeM": superCodeM,
+                        "codeType": codeType,
+                        "prefLabel": prefLabel,
+                        "related": related,
+                        "synonym": synonym
+                    })
+    else:
+        continue
+
+df = pd.DataFrame(dataXml)
+df.to_csv("icdo.csv")
