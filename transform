@@ -1,39 +1,68 @@
 import pandas as pd
+import numpy as np
 import xml.etree.ElementTree as ET
 
-xmlFile = "icdo3rev2_2019syst_claml_20210129.xml"
+xmlFile = "/home/sabina/git/task-images/icdo-de-transform/icdo3rev2_2019syst_claml_20210129.xml"
 tree = ET.parse(xmlFile)
 root = tree.getroot()
 dataXml = []
 
 for classЕlement in root.findall(".//Class"):
     codeElement = classЕlement.get("code")
-    if ":" in codeElement:
-        codeM = codeElement
-        superClassM = classЕlement.find("SuperClass")
-        superCodeM = superClassM.get("code") if superClassM is not None else ""
+    code = codeElement.replace(":", "/")
+    superClass = classЕlement.find("SuperClass")
+    superCode = superClass.get("code") if superClass is not None else ""
 
-        for rubricЕlement in classЕlement.findall("Rubric"):
-            codeType = rubricЕlement.get("kind")
-            labelЕlement = rubricЕlement.find("Label")
-            prefLabel = labelЕlement.text if codeType == "preferred" else None
-            related = labelЕlement.text if codeType == "inclusion" else None
+    for rubricЕlement in classЕlement.findall("Rubric"):
+        codeType = rubricЕlement.get("kind")
+        isObsolete1 = rubricЕlement.get("usage")
+        labelЕlement = rubricЕlement.find("Label")
+        prefLabel = labelЕlement.text if codeType == "preferred" else None
+        related = labelЕlement.text if codeType == "inclusion" else None
+        synonym = ""
+        exclusion = ""
+        reference1 = ""
+        seeAlso1 = ""
+        reference2 = ""
+        seeAlso2 = ""
+        isObsolete2 = ""
+        for fragmentElement in labelЕlement.findall("Fragment"):
+            print(fragmentElement.text)
+            synonym = fragmentElement.text if fragmentElement is not None else None
+            isObsolete2 = fragmentElement.get("usage") 
+            for referenceElement1 in fragmentElement.findall("Reference"):
+                if referenceElement1.text.startswith("C"):
+                    reference1 = referenceElement1.text 
+                elif referenceElement1.text.startswith(('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')):
+                    seeAlso1 = referenceElement1.text  
+                else:
+                    continue
+        for exclusionElement in labelЕlement.findall("Term"):
+            exclusion = exclusionElement.text if exclusionElement is not None else None
+        for referenceElement2 in labelЕlement.findall("Reference"):
+            if referenceElement2.text.startswith("C"):
+                reference2 = referenceElement2.text 
+            elif referenceElement2.text.startswith(('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')):
+                seeAlso2 = referenceElement2.text  
+            else:
+                continue
 
-            for fragmentElement in labelЕlement.findall("Fragment"):
-                synonym = fragmentElement.text if fragmentElement is not None else None
-                print(fragmentElement)
-                print(synonym)
-
-                dataXml.append({
-                        "codeM": codeM,
-                        "superCodeM": superCodeM,
-                        "codeType": codeType,
-                        "prefLabel": prefLabel,
-                        "related": related,
-                        "synonym": synonym
-                    })
-    else:
-        continue
+        dataXml.append({
+                "code": code,
+                "superCode": superCode,
+                "codeType": codeType,
+                "prefLabel": prefLabel,
+                "related": related,
+                "synonym": synonym,
+                "exclusion": exclusion,
+                "reference1": reference1,
+                "seeAlso1": seeAlso1,
+                "reference2": reference2,
+                "seeAlso2": seeAlso2,
+                "isObsolete1": isObsolete1,
+                "isObsolete2": isObsolete2
+            })
+        
 
 df = pd.DataFrame(dataXml)
 df.to_csv("icdo.csv")
